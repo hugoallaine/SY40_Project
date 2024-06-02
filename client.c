@@ -1,12 +1,20 @@
+// client.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <signal.h>
 
 #define PORT 8080
 #define SERVER_IP "127.0.0.1"
+
+int keep_running = 1;
+
+void int_handler(int sig) {
+    keep_running = 0;
+}
 
 void *receive_messages(void *arg) {
     int client_socket = *((int *)arg);
@@ -34,6 +42,8 @@ int main() {
     char buffer[1024];
     pthread_t receive_thread;
 
+    signal(SIGINT, int_handler);
+
     client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (client_socket == -1) {
         perror("Socket creation failed");
@@ -58,13 +68,17 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    while (1) {
+    while (keep_running) {
         printf("> ");
         fgets(buffer, sizeof(buffer), stdin);
+        if (!keep_running) break;
         send(client_socket, buffer, strlen(buffer), 0);
     }
 
-    pthread_join(receive_thread, NULL);
+    printf("\nDisconnecting...\n");
     close(client_socket);
+    pthread_cancel(receive_thread);
+    pthread_join(receive_thread, NULL);
+
     return 0;
 }
