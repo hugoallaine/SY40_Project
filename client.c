@@ -1,4 +1,9 @@
-// client.c
+/*
+SY40 - Project | UTBM
+@author: Hugo Allainé - Quentin Balezeau
+client.c
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,12 +12,12 @@
 #include <pthread.h>
 #include <signal.h>
 
-#define PORT 8080
+#define PORT 12345
 #define SERVER_IP "127.0.0.1"
 
 int keep_running = 1;
 
-void int_handler(int sig) {
+void handle_sigint(int sig) {
     keep_running = 0;
 }
 
@@ -23,7 +28,10 @@ void *receive_messages(void *arg) {
 
     while ((bytes_read = recv(client_socket, buffer, sizeof(buffer) - 1, 0)) > 0) {
         buffer[bytes_read] = '\0';
-        printf("Server: %s\n", buffer);
+        printf("\r\033[K");  // Clear the current line
+        printf("- %s", buffer);
+        printf("> ");
+        fflush(stdout);
     }
 
     if (bytes_read == 0) {
@@ -42,7 +50,7 @@ int main() {
     char buffer[1024];
     pthread_t receive_thread;
 
-    signal(SIGINT, int_handler);
+    signal(SIGINT, handle_sigint);
 
     client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (client_socket == -1) {
@@ -70,7 +78,9 @@ int main() {
 
     while (keep_running) {
         printf("> ");
-        fgets(buffer, sizeof(buffer), stdin);
+        if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+            break;
+        }
         if (!keep_running) break;
         send(client_socket, buffer, strlen(buffer), 0);
     }
