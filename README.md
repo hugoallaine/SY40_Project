@@ -1,6 +1,6 @@
 # SY40 Project
 
-Communication Server | SY40 Project in third year at UTBM.
+Multi-client communication server | SY40 Project in third year at UTBM.
 
 Developed by :
 - Hugo Allainé
