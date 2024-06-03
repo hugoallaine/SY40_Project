@@ -14,6 +14,7 @@ client.c
 
 #define PORT 12345
 #define SERVER_IP "127.0.0.1"
+#define NAME_SIZE 30
 
 int keep_running = 1;
 
@@ -25,7 +26,7 @@ void *receive_messages(void *arg) {
     int client_socket = *((int *)arg);
     char buffer[1024];
     int bytes_read;
-
+   
     while ((bytes_read = recv(client_socket, buffer, sizeof(buffer) - 1, 0)) > 0) {
         buffer[bytes_read] = '\0';
         printf("\r\033[K");  // Clear the current line
@@ -50,6 +51,13 @@ int main() {
     char buffer[1024];
     pthread_t receive_thread;
 
+    char client_name[30];
+
+    printf("Enter your name: ");
+    fgets(client_name, sizeof(client_name), stdin);
+    client_name[strcspn(client_name, "\n")] = 0; // remove newline character
+
+
     signal(SIGINT, handle_sigint);
 
     client_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -68,8 +76,9 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    printf("Connected to server. Type your messages:\n");
-
+    printf("Welcome %s, you are connected to server. Type your messages:\n", client_name);
+    send(client_socket, client_name, strlen(client_name), 0);
+    
     if (pthread_create(&receive_thread, NULL, receive_messages, &client_socket) != 0) {
         perror("Thread creation failed");
         close(client_socket);
@@ -77,7 +86,7 @@ int main() {
     }
 
     while (keep_running) {
-        printf("> ");
+        printf("%s > ", client_name);
         if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
             break;
         }

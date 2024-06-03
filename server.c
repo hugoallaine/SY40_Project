@@ -14,10 +14,12 @@ server.c
 
 #define MAX_CLIENTS 10
 #define PORT 12345
+#define NAME_SIZE 30
 
 typedef struct {
     int socket;
     char ip[INET_ADDRSTRLEN];
+    char name[NAME_SIZE];
     int port;
 } client_info;
 
@@ -45,7 +47,7 @@ void handle_sigusr2(int sig) {
 void broadcast_message(const client_info *sender, const char *message, size_t message_len) {
     pthread_mutex_lock(&clients_mutex);
     char full_message[1024 + INET_ADDRSTRLEN + 10];
-    snprintf(full_message, sizeof(full_message), "%s:%d: %s", sender->ip, sender->port, message);
+    snprintf(full_message, sizeof(full_message), "%s: %s",sender->name, message);
     for (int i = 0; i < connected_clients; ++i) {
         if (client_sockets[i].socket != sender->socket) {
             send(client_sockets[i].socket, full_message, strlen(full_message), 0);
@@ -61,9 +63,19 @@ void *handle_client(void *arg) {
     char buffer[1024];
     int bytes_read;
 
+    if ((bytes_read = read(client.socket, client.name, NAME_SIZE - 1)) > 0) {
+        client.name[bytes_read] = '\0';
+    } else {
+        perror("Failed to read client name");
+        close(client.socket);
+        return NULL;
+    }
+
+    printf("Client %s (IP: %s:%d) connected.\n", client.name, client.ip, client.port);
+
     while ((bytes_read = read(client.socket, buffer, sizeof(buffer) - 1)) > 0) {
         buffer[bytes_read] = '\0';
-        printf("Client %s:%d: %s", client.ip, client.port, buffer);
+        printf("Client %s (IP: %s:%d): %s", client.name, client.ip, client.port, buffer);
         broadcast_message(&client, buffer, bytes_read);
     }
 
@@ -134,7 +146,7 @@ int main() {
                 client_sockets[connected_clients++] = *client;
                 pthread_mutex_unlock(&clients_mutex);
 
-                printf("Client %s:%d connected.\n", client->ip, client->port);
+                //printf("Client %s:(IP: %s:%d) connected.\n", client->name, client->ip, client->port);
                 if (pthread_create(&tid, NULL, handle_client, client) != 0) {
                     perror("Thread creation failed");
                     free(client);
