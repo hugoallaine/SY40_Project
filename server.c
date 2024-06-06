@@ -16,11 +16,6 @@ server.c
 #define PORT 12345
 #define NAME_SIZE 30
 
-int server_socket; // Server socket
-client_info client_sockets[MAX_CLIENTS]; // Array of client sockets
-int connected_clients = 0; // Number of connected clients
-pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex to protect client_sockets
-
 /**
  * @brief Structure to store client information
  * 
@@ -35,6 +30,11 @@ typedef struct {
     char name[NAME_SIZE];
     int port;
 } client_info;
+
+int server_socket; // Server socket
+client_info client_sockets[MAX_CLIENTS]; // Array of client sockets
+int connected_clients = 0; // Number of connected clients
+pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex to protect client_sockets
 
 /**
  * @brief Function to handle SIGUSR1 signal
