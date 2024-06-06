@@ -16,13 +16,23 @@ client.c
 #define SERVER_IP "127.0.0.1"
 #define NAME_SIZE 30
 
-int keep_running = 1;
-char client_name[30];
+int keep_running = 1; // int to keep the client running
+char client_name[30]; // Client name
 
+/**
+ * @brief Function to handle SIGINT signal
+ * 
+ * @param sig 
+ */
 void handle_sigint(int sig) {
     keep_running = 0;
 }
 
+/**
+ * @brief Function to receive messages from server
+ * 
+ * @param arg 
+ */
 void *receive_messages(void *arg) {
     int client_socket = *((int *)arg);
     char buffer[1024];
@@ -37,7 +47,7 @@ void *receive_messages(void *arg) {
     }
 
     if (bytes_read == 0) {
-        printf("\r\033[K");  // Clear the current line
+        printf("\r\033[K");
         printf("Connection closed by server.\n");
     } else {
         perror("recv failed");
@@ -47,18 +57,22 @@ void *receive_messages(void *arg) {
     exit(0);
 }
 
+/**
+ * @brief Main function
+ * 
+ * @return int 
+ */
 int main() {
     int client_socket;
     struct sockaddr_in server_addr;
     char buffer[1024];
     pthread_t receive_thread;
 
+    signal(SIGINT, handle_sigint);
+
     printf("Enter your name: ");
     fgets(client_name, sizeof(client_name), stdin);
     client_name[strcspn(client_name, "\n")] = 0; // remove newline character
-
-
-    signal(SIGINT, handle_sigint);
 
     client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (client_socket == -1) {

@@ -16,6 +16,19 @@ server.c
 #define PORT 12345
 #define NAME_SIZE 30
 
+int server_socket; // Server socket
+client_info client_sockets[MAX_CLIENTS]; // Array of client sockets
+int connected_clients = 0; // Number of connected clients
+pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER; // Mutex to protect client_sockets
+
+/**
+ * @brief Structure to store client information
+ * 
+ * @param socket Client socket
+ * @param ip Client IP address
+ * @param name Client name
+ * @param port Client port
+ */
 typedef struct {
     int socket;
     char ip[INET_ADDRSTRLEN];
@@ -23,11 +36,11 @@ typedef struct {
     int port;
 } client_info;
 
-int server_socket;
-client_info client_sockets[MAX_CLIENTS];
-int connected_clients = 0;
-pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
-
+/**
+ * @brief Function to handle SIGUSR1 signal
+ * 
+ * @param sig 
+ */
 void handle_sigusr1(int sig) {
     pthread_mutex_lock(&clients_mutex);
     for (int i = 0; i < connected_clients; ++i) {
@@ -40,10 +53,22 @@ void handle_sigusr1(int sig) {
     exit(0);
 }
 
+/**
+ * @brief Function to handle SIGUSR2 signal
+ * 
+ * @param sig 
+ */
 void handle_sigusr2(int sig) {
     printf("Current connections: %d\n", connected_clients);
 }
 
+/**
+ * @brief Function to broadcast a message to all connected clients except the sender
+ * 
+ * @param sender Client who sent the message
+ * @param message Message to broadcast
+ * @param message_len Length of the message
+ */
 void broadcast_message(const client_info *sender, const char *message, size_t message_len) {
     pthread_mutex_lock(&clients_mutex);
     char full_message[1024 + INET_ADDRSTRLEN + 10];
@@ -56,6 +81,11 @@ void broadcast_message(const client_info *sender, const char *message, size_t me
     pthread_mutex_unlock(&clients_mutex);
 }
 
+/**
+ * @brief Function to handle client connection
+ * 
+ * @param arg Client information
+ */
 void *handle_client(void *arg) {
     client_info client = *((client_info *)arg);
     free(arg);
@@ -94,6 +124,11 @@ void *handle_client(void *arg) {
     return NULL;
 }
 
+/**
+ * @brief Main function
+ * 
+ * @return int 
+ */
 int main() {
     struct sockaddr_in server_addr, client_addr;
     socklen_t addr_size;
@@ -145,8 +180,6 @@ int main() {
                 client->port = ntohs(client_addr.sin_port);
                 client_sockets[connected_clients++] = *client;
                 pthread_mutex_unlock(&clients_mutex);
-
-                //printf("Client %s:(IP: %s:%d) connected.\n", client->name, client->ip, client->port);
                 if (pthread_create(&tid, NULL, handle_client, client) != 0) {
                     perror("Thread creation failed");
                     free(client);
