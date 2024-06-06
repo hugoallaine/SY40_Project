@@ -17,6 +17,7 @@ client.c
 #define NAME_SIZE 30
 
 int keep_running = 1;
+char client_name[30];
 
 void handle_sigint(int sig) {
     keep_running = 0;
@@ -31,11 +32,12 @@ void *receive_messages(void *arg) {
         buffer[bytes_read] = '\0';
         printf("\r\033[K");  // Clear the current line
         printf("- %s", buffer);
-        printf("> ");
+        printf("%s > ", client_name);
         fflush(stdout);
     }
 
     if (bytes_read == 0) {
+        printf("\r\033[K");  // Clear the current line
         printf("Connection closed by server.\n");
     } else {
         perror("recv failed");
@@ -50,8 +52,6 @@ int main() {
     struct sockaddr_in server_addr;
     char buffer[1024];
     pthread_t receive_thread;
-
-    char client_name[30];
 
     printf("Enter your name: ");
     fgets(client_name, sizeof(client_name), stdin);
